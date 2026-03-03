@@ -1,4 +1,4 @@
-package tenant
+package document
 /*
 dynamo db operation for tenants
 */

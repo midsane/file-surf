@@ -1,4 +1,4 @@
-package user
+package document
 /*
 business logic ->  validation, orchestration
 */
