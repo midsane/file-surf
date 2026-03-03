@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 
 	"github.com/midsane/file-surf/internal/config"
 )
 
 func main() {
 	// Load config
+	godotenv.Load()
 	cfg := config.Load()
 
 	// Create router
