@@ -14,7 +14,9 @@ import (
 
 	"github.com/midsane/file-surf/internal/config"
 	"github.com/midsane/file-surf/internal/database"
+	"github.com/midsane/file-surf/internal/document"
 	"github.com/midsane/file-surf/internal/server"
+	"github.com/midsane/file-surf/internal/storage"
 
 	// "github.com/midsane/file-surf/internal/storage"
 	"github.com/midsane/file-surf/internal/tenant"
@@ -32,10 +34,12 @@ func main() {
 		log.Fatalf("failed to init dynamodb: %v", err)
 	}
 
-	// s3Client, err := storage.NewS3Client(ctx, cfg.AWSRegion)
-	// if err != nil {
-	// 	log.Fatalf("faild to init s3 %v", err)
-	// }
+	s3Client, err := storage.NewS3Client(ctx, cfg.AWSRegion)
+	if err != nil {
+		log.Fatalf("faild to init s3 %v", err)
+	}
+
+	s3Storage := storage.NewS3Storage(s3Client, cfg.S3Bucket)
 
 	// Create router
 	router := gin.New()
@@ -45,14 +49,17 @@ func main() {
 	tenantRepo := tenant.NewRepository(dynamoClient, cfg.TenantTable)
 	tenantService := tenant.NewService(tenantRepo)
 	tenantHandler := tenant.NewHandler(tenantService)
-
 	tenantHandler.RegisterRoutes(router)
 
 	userRepo := user.NewRepository(dynamoClient, cfg.TenantTable)
 	userService := user.NewService(userRepo, tenantRepo)
 	userHandler := user.NewHandler(userService)
-
 	userHandler.RegisterRoutes(router)
+
+	docRepo := document.NewRepository(dynamoClient, cfg.TenantTable)
+	docService := document.NewService(docRepo, tenantRepo, s3Storage)
+	docHandler := document.NewHandler(docService)
+	docHandler.RegisterRoutes(router)
 
 	// Health route
 	router.GET("/health", func(c *gin.Context) {
