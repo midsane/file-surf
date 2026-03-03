@@ -13,12 +13,25 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/midsane/file-surf/internal/config"
+	"github.com/midsane/file-surf/internal/database"
+	"github.com/midsane/file-surf/internal/storage"
 )
 
 func main() {
 	// Load config
 	godotenv.Load()
 	cfg := config.Load()
+	ctx := context.Background()
+
+	dynamoClient, err := database.NewDynamoClient(ctx, cfg.AWSRegion)
+	if err != nil {
+		log.Fatalf("failed to init dynamodb: %v",err)
+	}
+
+	s3Client, err := storage.NewS3Client(ctx, cfg.AWSRegion)
+	if err != nil {
+		log.Fatalf("faild to init s3 %v", err);
+	}
 
 	// Create router
 	router := gin.New()
