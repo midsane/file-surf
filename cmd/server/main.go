@@ -1,12 +1,62 @@
 package main
 
+import (
+	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/midsane/file-surf/internal/config"
+)
+
 func main() {
-	//load all envs
-	//setup logger
-	//prepare s3 for object storage, 
-	//prepare dynamo db for json storage
-	//wire repositories,services, handlers
-	//setup gin http server
-	//setup important middlewares -> for error handling, panic recovery
-	//graceful server shutdown
+	// Load config
+	cfg := config.Load()
+
+	// Create router
+	router := gin.New()
+	router.Use(gin.Recovery())
+
+	// Health route
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+		})
+	})
+
+	// HTTP server
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: router,
+	}
+
+	// Start server in goroutine
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	log.Println("Server started on port", cfg.Port)
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server shutdown failed: %s\n", err)
+	}
+
+	log.Println("Server exited properly")
 }
