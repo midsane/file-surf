@@ -14,8 +14,11 @@ import (
 
 	"github.com/midsane/file-surf/internal/config"
 	"github.com/midsane/file-surf/internal/database"
+	"github.com/midsane/file-surf/internal/server"
+
 	// "github.com/midsane/file-surf/internal/storage"
 	"github.com/midsane/file-surf/internal/tenant"
+	"github.com/midsane/file-surf/internal/user"
 )
 
 func main() {
@@ -36,6 +39,7 @@ func main() {
 
 	// Create router
 	router := gin.New()
+	router.Use(server.RequestLogger())
 	router.Use(gin.Recovery())
 
 	tenantRepo := tenant.NewRepository(dynamoClient, cfg.TenantTable)
@@ -43,6 +47,12 @@ func main() {
 	tenantHandler := tenant.NewHandler(tenantService)
 
 	tenantHandler.RegisterRoutes(router)
+
+	userRepo := user.NewRepository(dynamoClient, cfg.TenantTable)
+	userService := user.NewService(userRepo, tenantRepo)
+	userHandler := user.NewHandler(userService)
+
+	userHandler.RegisterRoutes(router)
 
 	// Health route
 	router.GET("/health", func(c *gin.Context) {

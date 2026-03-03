@@ -20,7 +20,7 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 }
 
 type createTenantRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" binding:"required,min=3"`
 }
 
 func (h *Handler) CreateTenant(c *gin.Context) {
@@ -28,7 +28,7 @@ func (h *Handler) CreateTenant(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid request body",
+			"error": err.Error(),
 		})
 		return
 	}
