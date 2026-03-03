@@ -14,7 +14,8 @@ import (
 
 	"github.com/midsane/file-surf/internal/config"
 	"github.com/midsane/file-surf/internal/database"
-	"github.com/midsane/file-surf/internal/storage"
+	// "github.com/midsane/file-surf/internal/storage"
+	"github.com/midsane/file-surf/internal/tenant"
 )
 
 func main() {
@@ -25,17 +26,23 @@ func main() {
 
 	dynamoClient, err := database.NewDynamoClient(ctx, cfg.AWSRegion)
 	if err != nil {
-		log.Fatalf("failed to init dynamodb: %v",err)
+		log.Fatalf("failed to init dynamodb: %v", err)
 	}
 
-	s3Client, err := storage.NewS3Client(ctx, cfg.AWSRegion)
-	if err != nil {
-		log.Fatalf("faild to init s3 %v", err);
-	}
+	// s3Client, err := storage.NewS3Client(ctx, cfg.AWSRegion)
+	// if err != nil {
+	// 	log.Fatalf("faild to init s3 %v", err)
+	// }
 
 	// Create router
 	router := gin.New()
 	router.Use(gin.Recovery())
+
+	tenantRepo := tenant.NewRepository(dynamoClient, cfg.TenantTable)
+	tenantService := tenant.NewService(tenantRepo)
+	tenantHandler := tenant.NewHandler(tenantService)
+
+	tenantHandler.RegisterRoutes(router)
 
 	// Health route
 	router.GET("/health", func(c *gin.Context) {
